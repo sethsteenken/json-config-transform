@@ -1,0 +1,32 @@
+{
+    "name": "json-config-transform",
+    "version": "1.0.0",
+    "description": "Transform JSON config files by environment.",
+    "homepage": "https://github.com/sethsteenken/json-config-transform",
+    "author": {
+      "name": "Seth Steenken",
+      "url": "https://github.com/sethsteenken"
+    },
+    "keywords": [
+      "web",
+      "environments",
+      "configuration",
+      "appsettings",
+      "build",
+      "CI"
+    ],
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/sethsteenken/json-config-transform.git"
+    },
+    "bugs": {
+      "url": "https://github.com/sethsteenken/json-config-transform/issues"
+    },
+    "license": "MIT",
+    "main": "index.js",
+    "dependencies": {
+      "vinyl": "^2.2.0",
+      "plugin-error": "1.0.1"
+    }
+  }
+  
