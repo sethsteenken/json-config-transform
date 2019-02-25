@@ -4,27 +4,6 @@ let vinyl = require('vinyl'),
     PluginError = require('plugin-error'),
     PLUGIN_NAME = 'json-config-transform';
 
-function Argument(args, key, defaultValue) {
-    var self = this;
-
-    function _getArgumentValue(args, key) {
-        var option,
-            index = args.indexOf(key);
-
-        if (index > -1 && args.length > (index + 1)) {
-            return args[index + 1];
-        }
-
-        return undefined;
-    }
-
-    self.Value = defaultValue;
-    self.Argument = _getArgumentValue(args, key);
-
-    if (self.Argument !== undefined)
-        self.Value = self.Argument;
-}
-
 function NewFile(name, contents) {
     //uses the node stream object
     var readableStream = require('stream').Readable({ objectMode: true });
@@ -37,7 +16,7 @@ function NewFile(name, contents) {
     return readableStream;
 }
 
-function MergeProperties(base, target, output) {
+function TransformProperties(base, target, output) {
     // start with all properties in base
     for (var prop in base) {
         if (target.hasOwnProperty(prop)) {
@@ -47,34 +26,34 @@ function MergeProperties(base, target, output) {
                 && typeof target[prop] === "object"
                 && toString.call(base[prop]) !== "[object Array]")
             {
-                console.log("Base Property '" + prop + "': is OBJECT type - recursively merging properties...");
-                MergeProperties(base[prop], target[prop], output[prop]);
+                Log("Base Property '" + prop + "': is OBJECT type - recursively merging properties...");
+                TransformProperties(base[prop], target[prop], output[prop]);
             } else {
                 // set the output property to the new target property (includes arrays overwriting arrays)
-                console.log("Base Property '" + prop + "': output VALUE SET to " + target[prop]);
+                Log("Base Property '" + prop + "': output VALUE SET to " + target[prop]);
                 output[prop] = target[prop];
             }
         } else {
-            console.log("Base Property '" + prop + "' not found on target.");
+            Log("Base Property '" + prop + "' not found on target.");
         }
     }
 
     // see if any new properties exist on the target and add to the output if not present
     for (var prop in target) {
         if (!output.hasOwnProperty(prop)) {
-            console.log("Target Property '" + prop + "': output VALUE SET to + " + target[prop]);
+            Log("Target Property '" + prop + "': output VALUE SET to + " + target[prop]);
             output[prop] = target[prop];
         } else {
-            console.log("Target Property '" + prop + "': already exists on output.");
+            Log("Target Property '" + prop + "': already exists on output.");
         }
     }
 }
 
-function FormatConfigFileName(filename) {
-
+function Log(message) {
+    console.log(message);
 }
 
-module.exports = function(options) {
+function Settings(options) {
     if (!options) {
         throw new PluginError(PLUGIN_NAME, "Options object required.");
     }
@@ -87,10 +66,36 @@ module.exports = function(options) {
 
     options = Object.assign({}, {
         Environment: "",
-        ConfigDirectory: "./",
-        ConfigSourceFileName: "appsettings.json",
+        ConfigSource: "./appsettings.json",
         OutputPath: "./appsettings.json",
-    }, options)
+    }, options);
+
+    this.Environment = options.Environment;
+    this.ConfigSource = options.ConfigSource;
+    this.OutputPath = options.OutputPath;
+
+    this.ConfigFileName = "";
+    this.EnvironmentConfigSource = "";
+    //baseDirectory.Value + settings.ConfigSourceFileName + '.' + environment.Value + '.json'
+
+
+    function _formatConfigFileName(filename) {
+        if (!filename) {
+            return null;
+        }
+    }
+    
+    function _getDirectoryFromFullPath(path) {
+        if (!path) {
+            return null;
+        }
+    }
+    
+
+}
+
+module.exports = function(options) {
+    var transformSettings = new Settings(options);
 
     /*
     let environment = new Argument(process.argv, "--environment"),
@@ -99,21 +104,20 @@ module.exports = function(options) {
         outputDirectory = new Argument(process.argv, "--outputdir", "./"),
         outputFileName = new Argument(process.argv, "--outputfilename", "appsettings");
         */
-/*
-    if (options.Environment) {
-        console.log("** Transforming JSON file '" + options.ConfigSourceFileName + "' for '" + options.Environment + "' environment. **");
 
-        var settingsBase = require(baseDirectory.Value + filename.Value + ".json"),
-            newSettings = settingsBase,
-            environmentSettings = require(baseDirectory.Value + filename.Value + '.' + environment.Value + '.json');
-
-        MergeProperties(settingsBase, environmentSettings, newSettings);
-
-        //convert new object to a JSON string and write it a file in output directory
-        return NewFile(outputFileName.Value + ".json", JSON.stringify(newSettings, null, 2))
-            .pipe(gulp.dest(outputDirectory.Value));
-    } else {
-        console.error("Transform operation aborted. No environment specified.");
+    if (!transformSettings.Environment) {
+        throw new PluginError(PLUGIN_NAME, "Transform operation aborted. No environment specified.");
     }
-    */
+
+    Log("** Transforming JSON file '" + transformSettings.ConfigFileName + "' for '" + transformSettings.Environment + "' environment. **");
+
+    let baselineConfigSettings = require(transformSettings.ConfigSource),
+        newSettings = baselineConfigSettings,
+        environmentSettings = require(transformSettings.EnvironmentConfigSource);
+
+    TransformProperties(baselineConfigSettings, environmentSettings, newSettings);
+
+    //convert new object to a JSON string and write it a file in output directory
+    // TODO - stringify create output with indents?
+    return NewFile(transformSettings.OutputPath, JSON.stringify(newSettings, null, 2));
 }
