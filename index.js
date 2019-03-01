@@ -4,7 +4,8 @@ let vinyl = require('vinyl'),
     PluginError = require('plugin-error'),
     PLUGIN_NAME = 'json-config-transform';
 
-function NewFile(name, contents) {
+function NewFile(path, contents) {
+    /*
     //uses the node stream object
     var readableStream = require('stream').Readable({ objectMode: true });
 
@@ -14,6 +15,20 @@ function NewFile(name, contents) {
         this.push(null);
     };
     return readableStream;
+    */
+
+    let fs = require('fs');
+
+    //path = path.substr(2, path.length - 2);
+    path = "." + path;
+    console.log("path", path);
+    fs.writeFile(path, contents, function (err) {
+        if (err) {
+            throw err;
+        }
+
+        console.log("file saved!");
+    });
 }
 
 function TransformProperties(base, target, output) {
@@ -70,40 +85,45 @@ function Settings(options) {
         OutputPath: "./appsettings.json",
     }, options);
 
+    console.log("Settings - options", options);
+
     this.Environment = options.Environment;
     this.ConfigSource = options.ConfigSource;
     this.OutputPath = options.OutputPath;
 
-    this.ConfigFileName = "";
-    this.EnvironmentConfigSource = "";
-    //baseDirectory.Value + settings.ConfigSourceFileName + '.' + environment.Value + '.json'
+    this.ConfigFileName = _getFileNameFromPath(this.ConfigSource);
+    this.ConfigDirectoryPath = _getDirectoryFromFullPath(this.ConfigSource);
+    this.EnvironmentConfigSource = this.ConfigDirectoryPath + _getFileNameWithoutExtension(this.ConfigFileName) + "." + this.Environment + ".json";
 
-
-    function _formatConfigFileName(filename) {
-        if (!filename) {
-            return null;
+    function _getFileNameFromPath(path) {
+        if (!path) {
+            return path;
         }
+
+        return path.split('\\').pop().split('/').pop();
+    }
+
+    function _getFileNameWithoutExtension(filename) {
+        if (!filename) {
+            return filename;
+        }
+
+        return filename.replace(/\.[^/.]+$/, "");
     }
     
     function _getDirectoryFromFullPath(path) {
         if (!path) {
-            return null;
+            return path;
         }
-    }
-    
 
+        return path.substr(0, path.lastIndexOf("/")) + "/";
+    }
 }
 
 module.exports = function(options) {
-    var transformSettings = new Settings(options);
+    let transformSettings = new Settings(options);
 
-    /*
-    let environment = new Argument(process.argv, "--environment"),
-        baseDirectory = new Argument(process.argv, "--basedir", "./"),
-        filename = new Argument(process.argv, "--basefilename", "appsettings"),
-        outputDirectory = new Argument(process.argv, "--outputdir", "./"),
-        outputFileName = new Argument(process.argv, "--outputfilename", "appsettings");
-        */
+    console.log("transformSettings", transformSettings);
 
     if (!transformSettings.Environment) {
         throw new PluginError(PLUGIN_NAME, "Transform operation aborted. No environment specified.");
