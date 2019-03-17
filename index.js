@@ -15,6 +15,7 @@ function NewFile(path, contents) {
         this.push(null);
     };
     return readableStream;
+    some changes
     */
 
     let fs = require('fs');
