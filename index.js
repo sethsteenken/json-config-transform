@@ -2,33 +2,22 @@
 
 let vinyl = require('vinyl'),
     PluginError = require('plugin-error'),
-    PLUGIN_NAME = 'json-config-transform';
+    PLUGIN_NAME = 'json-config-transform',
+    logEnabled = false;
 
 function NewFile(path, contents) {
-    /*
-    //uses the node stream object
-    var readableStream = require('stream').Readable({ objectMode: true });
-
-    //reads in contents string
-    readableStream._read = function () {
-        this.push(new vinyl({ cwd: "", base: null, path: name, contents: new Buffer(contents) }));
-        this.push(null);
-    };
-    return readableStream;
-    some changes
-    */
-
     let fs = require('fs');
 
-    //path = path.substr(2, path.length - 2);
-    path = "." + path;
-    console.log("path", path);
+    if (path.startsWith(".")) {
+        path = "." + path;
+    }
+
     fs.writeFile(path, contents, function (err) {
         if (err) {
             throw err;
         }
 
-        console.log("file saved!");
+        Log("File saved at " + path);
     });
 }
 
@@ -66,7 +55,31 @@ function TransformProperties(base, target, output) {
 }
 
 function Log(message) {
-    console.log(message);
+    if (logEnabled) {
+        console.log(message);
+    }
+}
+
+function ToBool(value) {
+    if (value === undefined) {
+        return false;
+    } else if (typeof value === 'boolean') {
+        return value;
+    } else if (typeof value === 'number' ) {
+        value = value.toString();
+    } else if (typeof value !== 'string') {
+        return false;
+    }
+
+    switch (value.toLowerCase()) {
+        case "true":
+        case "yes":
+        case "1":
+        case "y":
+            return true;
+        default:
+            return false;
+    }
 }
 
 function Settings(options) {
@@ -81,16 +94,16 @@ function Settings(options) {
     }
 
     options = Object.assign({}, {
-        Environment: "",
-        ConfigSource: "./appsettings.json",
-        OutputPath: "./appsettings.json",
+        environment: "",
+        configSource: "./appsettings.json",
+        outputPath: "./appsettings.json",
+        logEnabled: false
     }, options);
 
-    console.log("Settings - options", options);
-
-    this.Environment = options.Environment;
-    this.ConfigSource = options.ConfigSource;
-    this.OutputPath = options.OutputPath;
+    this.Environment = options.environment;
+    this.ConfigSource = options.configSource;
+    this.OutputPath = options.outputPath;
+    this.LogEnabled = ToBool(options.logEnabled);
 
     this.ConfigFileName = _getFileNameFromPath(this.ConfigSource);
     this.ConfigDirectoryPath = _getDirectoryFromFullPath(this.ConfigSource);
@@ -124,11 +137,11 @@ function Settings(options) {
 module.exports = function(options) {
     let transformSettings = new Settings(options);
 
-    console.log("transformSettings", transformSettings);
-
     if (!transformSettings.Environment) {
         throw new PluginError(PLUGIN_NAME, "Transform operation aborted. No environment specified.");
     }
+
+    logEnabled = transformSettings.LogEnabled;
 
     Log("** Transforming JSON file '" + transformSettings.ConfigFileName + "' for '" + transformSettings.Environment + "' environment. **");
 
