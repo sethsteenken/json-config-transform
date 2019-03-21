@@ -97,13 +97,15 @@ function Settings(options) {
         environment: "",
         configSource: "./appsettings.json",
         outputPath: "./appsettings.json",
-        logEnabled: false
+        logEnabled: false,
+        indent: false
     }, options);
 
     this.Environment = options.environment;
     this.ConfigSource = options.configSource;
     this.OutputPath = options.outputPath;
     this.LogEnabled = ToBool(options.logEnabled);
+    this.Indent = ToBool(options.indent);
 
     this.ConfigFileName = _getFileNameFromPath(this.ConfigSource);
     this.ConfigDirectoryPath = _getDirectoryFromFullPath(this.ConfigSource);
@@ -151,7 +153,6 @@ module.exports = function(options) {
 
     TransformProperties(baselineConfigSettings, environmentSettings, newSettings);
 
-    //convert new object to a JSON string and write it a file in output directory
-    // TODO - stringify create output with indents?
-    return NewFile(transformSettings.OutputPath, JSON.stringify(newSettings, null, 2));
+    // convert new object to a JSON string and write it a file in output directory
+    return NewFile(transformSettings.OutputPath, JSON.stringify(newSettings, undefined, transformSettings.Indent ? '\t' : 0));
 }

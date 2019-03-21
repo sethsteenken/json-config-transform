@@ -4,5 +4,6 @@ transformer({
     environment: "Production",
     configSource: "./tests/appsettings.json",
     outputPath: "appsettings_output.json",
-    logEnabled: true
+    logEnabled: true,
+    indent: true
 });
