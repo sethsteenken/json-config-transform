@@ -79,15 +79,43 @@ function TransformProperties(base, target, output) {
             continue;
         }
 
-        if (prop.includes("[transform:match")) {
-            if (toString.call(target[prop]) !== "[object Array]") {
-                throw new PluginError(PLUGIN_NAME, "Action [transform:match...] invalid. Action only applicable on array properties.");
+        if (prop.includes("[transform:match:")) {
+            let cmd = prop.slice(prop.indexOf("[transform"), prop.length),
+                originalProp = prop.replace(cmd, ""),
+                matchProp =  cmd.slice(cmd.lastIndexOf(":") + 1, cmd.length).replace("]", "");
+
+            if (!output.hasOwnProperty(originalProp) || toString.call(output[originalProp]) !== "[object Array]") {
+                throw new PluginError(PLUGIN_NAME, "Action " + cmd + " failed. Cannot match array items to property " + originalProp + ". Property does not exist.");
             }
 
-            // TODO - get the match prop name
-            // TODO - confirm is array
-            // TODO - update properties based on match prop name (probably "Name")
+            if (toString.call(target[prop]) !== "[object Array]") {
+                throw new PluginError(PLUGIN_NAME, "Action " + cmd + " invalid. Action only applicable on array properties.");
+            }
 
+            Log(originalProp + " array being MATCHED by property " + matchProp + ".");
+
+            for (let i = 0; i < target[prop].length; i++) {
+                let targetItem = target[prop][i];
+
+                if (typeof targetItem !== "object" || !targetItem.hasOwnProperty(matchProp)) {
+                    throw new PluginError(PLUGIN_NAME, "Action " + cmd + " invalid. Array items must be an object amd have property " + matchProp + ".");
+                }
+
+                for (let o = 0; o < output[originalProp].length; o++) {
+                    let outputItem = output[originalProp][o];
+
+                    if (typeof outputItem !== "object" || !outputItem.hasOwnProperty(matchProp)) {
+                        throw new PluginError(PLUGIN_NAME, "Action " + cmd + " invalid. Array items must be an object amd have property " + matchProp + ".");
+                    }
+
+                    if (outputItem[matchProp].toLowerCase() === targetItem[matchProp].toLowerCase()) {
+                        for (var itemProp in targetItem) {
+                            outputItem[itemProp] = targetItem[itemProp];
+                        }
+                    }   
+                }
+            }
+            
             continue;
         }
 
