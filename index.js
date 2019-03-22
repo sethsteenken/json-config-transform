@@ -22,55 +22,78 @@ function NewFile(path, contents) {
 }
 
 function TransformProperties(base, target, output) {
-    // start with all properties in base
+    // start with all properties in base that match in target
+    // these will be direct matches and result in target value replacing base value
     for (var prop in base) {
-        if (target.hasOwnProperty(prop)) {
-            // recursively merge nested properties if property is an object excluding arrays
-            if (typeof target[prop] !== null
-                && typeof base[prop] === "object"
-                && typeof target[prop] === "object"
-                && toString.call(base[prop]) !== "[object Array]")
-            {
-                Log("Base Property '" + prop + "': is OBJECT type - recursively merging properties...");
-                TransformProperties(base[prop], target[prop], output[prop]);
-            } 
-            /*else if (toString.call(base[prop]) === "[object Array]") {
-                output[prop] = [];
+        if (!target.hasOwnProperty(prop)) {
+            continue;
+        }
 
-                for (let i = 0; i < base[prop].length; i++) {
-                    output[prop].push({});
-                    TransformProperties(base[prop][i], target[prop][i], output[prop][i]);
-                }
-            }*/
-            else {
-                // set the output property to the new target property
-                Log("Base Property '" + prop + "': output VALUE SET to " + target[prop]);
-                output[prop] = target[prop];
-            }
-        } else if (target.hasOwnProperty(prop + "[transform:remove]")) {
-            delete output[prop];
-            Log("Base Property '" + prop + "' REMOVED.");
+        // recursively merge nested properties if property is an object excluding arrays
+        if (typeof target[prop] !== null
+            && typeof base[prop] === "object"
+            && typeof target[prop] === "object"
+            && toString.call(base[prop]) !== "[object Array]")
+        {
+            TransformProperties(base[prop], target[prop], output[prop]);
         } else {
-            Log("Base Property '" + prop + "' not found on target.");
+            // set the output property to the new target property
+            Log(prop + " value REPLACED with " + target[prop] + ".");
+            output[prop] = target[prop];
         }
     }
 
     // see if any new properties exist on the target and add to the output if not present
+    // this is also where special transform actions take place
     for (var prop in target) {
         if (prop.includes("[transform:remove]")) {
+            let originalProp = prop.replace("[transform:remove]", "");
+
+            if (!output.hasOwnProperty(originalProp)) {
+                throw new PluginError(PLUGIN_NAME, "Action [transform:remove] failed. Cannot remove property " + originalProp + ". Property does not exist.");
+            }
+            
+            delete output[originalProp];
+            Log(originalProp + " REMOVED.");
             continue;
         }
 
+        // append items found in array to array output
         if (prop.includes("[transform:append]")) {
-            // TODO - append items to original array (arrays only)
-            //  - need parent prop??
+            let originalProp = prop.replace("[transform:append]", "");
+
+            if (!output.hasOwnProperty(originalProp)) {
+                throw new PluginError(PLUGIN_NAME, "Action [transform:append] failed. Cannot append array items to property " + originalProp + ". Property does not exist.");
+            }
+
+            if (toString.call(target[prop]) !== "[object Array]" || toString.call(output[originalProp]) !== "[object Array]") {
+                throw new PluginError(PLUGIN_NAME, "Action [transform:append] invalid. Action only applicable on array properties.");
+            }
+
+            for (let i = 0; i < target[prop].length; i++) {
+                output[originalProp].push(target[prop][i]);
+            }
+            
+            let newItemsCount = target[prop].length;
+            Log(originalProp + " APPENDED " + newItemsCount + " new item" + (newItemsCount === 1 ? "." : "s."));
+            continue;
+        }
+
+        if (prop.includes("[transform:match")) {
+            if (toString.call(target[prop]) !== "[object Array]") {
+                throw new PluginError(PLUGIN_NAME, "Action [transform:match...] invalid. Action only applicable on array properties.");
+            }
+
+            // TODO - get the match prop name
+            // TODO - confirm is array
+            // TODO - update properties based on match prop name (probably "Name")
+
+            continue;
         }
 
         if (!output.hasOwnProperty(prop)) {
-            Log("Target Property '" + prop + "': output VALUE SET to + " + target[prop]);
+            Log(prop + " ADDED with value " + target[prop] + ".");
             output[prop] = target[prop];
-        } else {
-            Log("Target Property '" + prop + "': already exists on output.");
         }
     }
 }
