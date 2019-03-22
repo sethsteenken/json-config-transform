@@ -33,11 +33,23 @@ function TransformProperties(base, target, output) {
             {
                 Log("Base Property '" + prop + "': is OBJECT type - recursively merging properties...");
                 TransformProperties(base[prop], target[prop], output[prop]);
-            } else {
-                // set the output property to the new target property (includes arrays overwriting arrays)
+            } 
+            /*else if (toString.call(base[prop]) === "[object Array]") {
+                output[prop] = [];
+
+                for (let i = 0; i < base[prop].length; i++) {
+                    output[prop].push({});
+                    TransformProperties(base[prop][i], target[prop][i], output[prop][i]);
+                }
+            }*/
+            else {
+                // set the output property to the new target property
                 Log("Base Property '" + prop + "': output VALUE SET to " + target[prop]);
                 output[prop] = target[prop];
             }
+        } else if (target.hasOwnProperty(prop + "[transform:remove]")) {
+            delete output[prop];
+            Log("Base Property '" + prop + "' REMOVED.");
         } else {
             Log("Base Property '" + prop + "' not found on target.");
         }
@@ -45,6 +57,15 @@ function TransformProperties(base, target, output) {
 
     // see if any new properties exist on the target and add to the output if not present
     for (var prop in target) {
+        if (prop.includes("[transform:remove]")) {
+            continue;
+        }
+
+        if (prop.includes("[transform:append]")) {
+            // TODO - append items to original array (arrays only)
+            //  - need parent prop??
+        }
+
         if (!output.hasOwnProperty(prop)) {
             Log("Target Property '" + prop + "': output VALUE SET to + " + target[prop]);
             output[prop] = target[prop];
