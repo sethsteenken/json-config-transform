@@ -1,7 +1,6 @@
 "use strict";
 
-let vinyl = require('vinyl'),
-    PluginError = require('plugin-error'),
+let PluginError = require('plugin-error'),
     PLUGIN_NAME = 'json-config-transform',
     logEnabled = false;
 

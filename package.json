@@ -13,7 +13,8 @@
     "configuration",
     "appsettings",
     "build",
-    "CI"
+    "CI",
+    "transform"
   ],
   "repository": {
     "type": "git",
@@ -25,7 +26,6 @@
   "license": "MIT",
   "main": "index.js",
   "dependencies": {
-    "vinyl": "^2.2.0",
     "plugin-error": "1.0.1"
   }
 }
