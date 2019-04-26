@@ -2,8 +2,8 @@ var transformer = require("../index.js");
 
 transformer({
     environment: "Production",
-    configSource: "./tests/appsettings.json",
-    outputPath: "appsettings_output.json",
+    configSource: "./appsettings.json",
+    outputPath: "./appsettings_output.json",
     logEnabled: true,
     indent: true
 });

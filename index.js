@@ -1,22 +1,23 @@
 "use strict";
 
 let PluginError = require('plugin-error'),
+    path = require('path'),
     PLUGIN_NAME = 'json-config-transform',
     logEnabled = false;
 
-function NewFile(path, contents) {
+function NewFile(filePath, contents) {
     let fs = require('fs');
 
-    if (path.startsWith(".")) {
-        path = "." + path;
+    if (filePath.startsWith(".")) {
+        filePath = "." + filePath;
     }
 
-    fs.writeFile(path, contents, function (err) {
+    fs.writeFile(filePath, contents, function (err) {
         if (err) {
             throw err;
         }
 
-        Log("File saved at " + path);
+        Log("File saved at " + filePath);
     });
 }
 
@@ -158,6 +159,8 @@ function Settings(options) {
         throw new PluginError(PLUGIN_NAME, "Options object required.");
     }
 
+    let executingDirectory = process.cwd();
+
     if (typeof options === "string") {
         options = {
             Environment: options
@@ -169,25 +172,26 @@ function Settings(options) {
         configSource: "./appsettings.json",
         outputPath: "./appsettings.json",
         logEnabled: false,
-        indent: false
+        indent: false,
+        pathsAreAbsolute: false
     }, options);
 
     this.Environment = options.environment;
-    this.ConfigSource = options.configSource;
-    this.OutputPath = options.outputPath;
+    this.ConfigSource = options.pathsAreAbsolute ? options.configSource : path.join(executingDirectory, options.configSource);
+    this.OutputPath = options.pathsAreAbsolute ? options.outputPath : path.join(executingDirectory, options.outputPath);
     this.LogEnabled = ToBool(options.logEnabled);
     this.Indent = ToBool(options.indent);
 
     this.ConfigFileName = _getFileNameFromPath(this.ConfigSource);
     this.ConfigDirectoryPath = _getDirectoryFromFullPath(this.ConfigSource);
-    this.EnvironmentConfigSource = this.ConfigDirectoryPath + _getFileNameWithoutExtension(this.ConfigFileName) + "." + this.Environment + ".json";
+    this.EnvironmentConfigSource = path.join(this.ConfigDirectoryPath, _getFileNameWithoutExtension(this.ConfigFileName) + "." + this.Environment + ".json");
 
-    function _getFileNameFromPath(path) {
-        if (!path) {
-            return path;
+    function _getFileNameFromPath(filePath) {
+        if (!filePath) {
+            return filePath;
         }
 
-        return path.split('\\').pop().split('/').pop();
+        return filePath.split('\\').pop().split('/').pop();
     }
 
     function _getFileNameWithoutExtension(filename) {
@@ -198,12 +202,22 @@ function Settings(options) {
         return filename.replace(/\.[^/.]+$/, "");
     }
     
-    function _getDirectoryFromFullPath(path) {
-        if (!path) {
-            return path;
+    function _getDirectoryFromFullPath(filePath) {
+        if (!filePath) {
+            return filePath;
         }
 
-        return path.substr(0, path.lastIndexOf("/")) + "/";
+        let forwardSlashLastIndex = filePath.lastIndexOf("/"),
+            backSlashLastIndex = filePath.lastIndexOf("\\"),
+            indexToSubStr = forwardSlashLastIndex,
+            endingSlash = "/";
+
+        if (backSlashLastIndex > forwardSlashLastIndex) {
+            indexToSubStr = backSlashLastIndex;
+            endingSlash = "\\";
+        }
+
+        return filePath.substr(0, indexToSubStr) + endingSlash;
     }
 }
 
